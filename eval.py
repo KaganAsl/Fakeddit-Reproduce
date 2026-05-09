@@ -7,19 +7,19 @@ from src.models import MultimodalFakeNewsModel
 
 def evaluate():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    print(f"Test cihazı: {device}")
+    print(f"Test device: {device}")
 
-    # 1. Araçları ve Modeli Yükle
+    # 1. Load Tools and Model
     tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
     image_processor = ViTImageProcessor.from_pretrained('google/vit-base-patch16-224-in21k')
     
     model = MultimodalFakeNewsModel()
-    # En iyi epoch sonucunu yüklüyoruz
+    # Loading the best epoch result
     model.load_state_dict(torch.load("multimodal_model_epoch_3.pt", map_location=device))
     model.to(device)
     model.eval()
 
-    # 2. Yeni Validation Subset'i Yükle
+    # 2. Load New Validation Subset
     val_dataset = FakedditMultimodalDataset(
         csv_file='data/val_subset.csv',
         img_dir='D:/463_project/data/images_sample/',
@@ -31,7 +31,7 @@ def evaluate():
     all_preds = []
     all_labels = []
 
-    print(f"{len(val_dataset)} yeni örnek üzerinde model test ediliyor...")
+    print(f"Testing model on {len(val_dataset)} new samples...")
     
     with torch.no_grad():
         for batch in val_loader:
@@ -46,12 +46,12 @@ def evaluate():
             all_preds.extend(preds.cpu().numpy())
             all_labels.extend(labels.cpu().numpy())
 
-    # 3. Sonuçları Raporla
+    # 3. Report Results
     print("\n" + "="*30)
-    print("GÖRMEMİŞ VERİ PERFORMANSI")
+    print("UNSEEN DATA PERFORMANCE")
     print("="*30)
-    print(classification_report(all_labels, all_preds, target_names=["Gerçek", "Sahte"]))
-    print("\n--- HATA MATRİSİ ---")
+    print(classification_report(all_labels, all_preds, target_names=["Real", "Fake"]))
+    print("\n--- CONFUSION MATRIX ---")
     print(confusion_matrix(all_labels, all_preds))
 
 if __name__ == "__main__":
