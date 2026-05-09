@@ -7,8 +7,8 @@ import pandas as pd
 class FakedditMultimodalDataset(Dataset):
     def __init__(self, csv_file, img_dir, tokenizer, feature_extractor, max_len=64):
         """
-        csv_file: Filtrelediğimiz 'train_subset.csv' yolu
-        img_dir: Görsellerin olduğu 'images_sample' klasörü
+        csv_file: Path to our filtered 'train_subset.csv'
+        img_dir: 'images_sample' folder containing images
         tokenizer: BERT Tokenizer
         feature_extractor: ViT Feature Extractor
         """
@@ -27,7 +27,7 @@ class FakedditMultimodalDataset(Dataset):
         text = str(row['clean_title'])
         label = int(row['2_way_label'])
 
-        # --- METİN İŞLEME (BERT) ---
+        # --- TEXT PROCESSING (BERT) ---
         encoding = self.tokenizer(
             text,
             add_special_tokens=True,
@@ -37,8 +37,8 @@ class FakedditMultimodalDataset(Dataset):
             return_tensors='pt'
         )
 
-        # --- GÖRSEL İŞLEME (ViT) ---
-        # Görseli bul (Uzantı .jpg veya .png olabilir, kontrol edelim)
+        # --- IMAGE PROCESSING (ViT) ---
+        # Find image (extension might be .jpg or .png, let's check)
         try:
             img_path = os.path.join(self.img_dir, f"{img_id}.jpg")
             if not os.path.exists(img_path):
@@ -47,8 +47,8 @@ class FakedditMultimodalDataset(Dataset):
             image = Image.open(img_path).convert("RGB")
             pixel_values = self.feature_extractor(image, return_tensors="pt")['pixel_values']
         except Exception as e:
-            # Eğer görsel bozuksa, listedeki bir sonraki örneği getirmeyi dene
-            print(f"Uyarı: {img_id} görseli okunamadı, atlanıyor. Hata: {e}")
+            # If image is corrupted, try to get the next sample in the list
+            print(f"Warning: Image {img_id} could not be read, skipping. Error: {e}")
             new_idx = (idx + 1) % len(self.data)
             return self.__getitem__(new_idx)
 
