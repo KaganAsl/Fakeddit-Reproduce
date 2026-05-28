@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from transformers import BertModel, ViTModel
+from attention import CrossAttention
 
 # 1. Baseline 1: Sadece Metin Modeli
 class TextOnlyFakeNewsModel(nn.Module):
@@ -58,3 +59,39 @@ class MultimodalFusionModel(nn.Module):
         
         # Birleştirilmiş vektörü sınıflandırıcıya gönder
         return self.classifier(combined_features)
+
+# 4. Cross Attention
+class MultimodalModelWithCrossAttention(nn.Module):
+    def __init__(self, num_labels=2, joint_dim=768, num_heads=8, dropout=0.1):
+        super(MultimodalModelWithCrossAttention, self).__init__()
+
+        self.bert = BertModel.from_pretrained('bert-base-uncased')
+        self.vit = ViTModel.from_pretrained('google/vit-base-patch16-224-in21k')
+
+        self.cross_attention = CrossAttention(
+            vit_dim=768,
+            bert_dim=768,
+            joint_dim=joint_dim,
+            num_heads=num_heads,
+            dropout=dropout,
+        )
+
+        self.classifier = nn.Sequential(
+            nn.Linear(joint_dim * 2, 512),
+            nn.ReLU(),
+            nn.Dropout(dropout),
+            nn.Linear(512, num_labels),
+        )
+
+    def forward(self, input_ids, attention_mask, pixel_values):
+        text_outputs = self.bert(input_ids=input_ids, attention_mask=attention_mask)
+        text_features = text_outputs.pooler_output
+
+        image_outputs = self.vit(pixel_values=pixel_values)
+        image_features = image_outputs.pooler_output
+
+        fused_img, fused_txt = self.cross_attention(image_features, text_features)
+
+        combined = torch.cat((fused_img, fused_txt), dim=1)
+        logits = self.classifier(combined)
+        return logits
