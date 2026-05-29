@@ -5,12 +5,13 @@ import pandas as pd
 import os
 
 class FakedditMultimodalDataset(Dataset):
-    def __init__(self, csv_file, img_dir, tokenizer=None, feature_extractor=None, max_len=128):
+    def __init__(self, csv_file, img_dir, tokenizer=None, feature_extractor=None, max_len=128, label_column='2_way_label'):
         self.data = pd.read_csv(csv_file, sep='\t')
         self.img_dir = img_dir
         self.tokenizer = tokenizer
         self.feature_extractor = feature_extractor
         self.max_len = max_len
+        self.label_column = label_column
 
     def __len__(self):
         return len(self.data)
@@ -50,7 +51,7 @@ class FakedditMultimodalDataset(Dataset):
                 # print(f"Hata: {img_path} yüklenemedi. Boş görsel dönülüyor.")
                 sample['pixel_values'] = torch.zeros(3, 224, 224)
 
-        # 3. Etiket (2_way_label: 0=Gerçek, 1=Sahte)
-        sample['label'] = torch.tensor(row['2_way_label'], dtype=torch.long)
+        # 3. Etiket (2_way_label / 3_way_label / 6_way_label)
+        sample['label'] = torch.tensor(row[self.label_column], dtype=torch.long)
         
         return sample

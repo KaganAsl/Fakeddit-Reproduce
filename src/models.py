@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 from transformers import BertModel, ViTModel
-from attention import CrossAttention
+from .attention import CrossAttention
 
 # 1. Baseline 1: Sadece Metin Modeli
 class TextOnlyFakeNewsModel(nn.Module):
