@@ -1,40 +1,67 @@
+import argparse
+
 import torch
 from torch.utils.data import DataLoader
 from transformers import BertTokenizer, ViTImageProcessor
 from sklearn.metrics import classification_report, confusion_matrix
-import pandas as pd
 
 # Kendi modüllerimiz
 from src.dataset import FakedditMultimodalDataset
 from src.models import MultimodalFusionModel
 
-def evaluate():
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    print(f"Cihaz: {device}")
+# Class names for each task
+LABEL_NAMES = {
+    '2_way_label': ['Real', 'Fake'],
+    '3_way_label': ['Real', 'Fake-Text', 'Fake-Image'],
+    '6_way_label': ['Real', 'Satire', 'Misleading Content',
+                    'False Connection', 'Manipulated', 'Fabricated'],
+}
 
-    # 1. Hazırlık
+
+def parse_args():
+    p = argparse.ArgumentParser(description="Multimodal Fusion eval (2/3/6-way)")
+    p.add_argument('--csv', default='data/multimodel_50k.tsv')
+    p.add_argument('--img-dir', default='data/images_50k/')
+    p.add_argument('--label-column', default='2_way_label',
+                   choices=['2_way_label', '3_way_label', '6_way_label'])
+    p.add_argument('--num-labels', type=int, default=2)
+    p.add_argument('--model-path', default='multimodal_fusion_2way_epoch_3.pt',
+                   help='Saved model weights file')
+    p.add_argument('--batch-size', type=int, default=16)
+    p.add_argument('--num-workers', type=int, default=4)
+    return p.parse_args()
+
+
+def evaluate():
+    args = parse_args()
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    print(f"Device: {device}")
+    print(f"Task: {args.label_column} | num_labels={args.num_labels} | model={args.model_path}")
+
+    # 1. Preparation
     tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
     image_processor = ViTImageProcessor.from_pretrained('google/vit-base-patch16-224-in21k')
     
-    # Test verisini yükle (Tüm verideki genel başarıyı görmek için orijinal dosyayı kullanabilirsin)
+    # Load test data
     dataset = FakedditMultimodalDataset(
-        csv_file='data/multimodel_subset.tsv', 
-        img_dir='D:/463_project/data/images_sample/',
+        csv_file=args.csv,
+        img_dir=args.img_dir,
         tokenizer=tokenizer,
-        feature_extractor=image_processor
+        feature_extractor=image_processor,
+        label_column=args.label_column,
     )
     
-    test_loader = DataLoader(dataset, batch_size=16, shuffle=False, num_workers=4)
+    test_loader = DataLoader(dataset, batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers)
 
-    # 2. Model Yükleme
-    model = MultimodalFusionModel().to(device)
-    model.load_state_dict(torch.load('multimodal_fusion_subset_epoch_3.pt'))
+    # 2. Load Model
+    model = MultimodalFusionModel(num_classes=args.num_labels).to(device)
+    model.load_state_dict(torch.load(args.model_path))
     model.eval()
 
     all_preds = []
     all_labels = []
 
-    print("Multimodal Fusion modeli test ediliyor (BERT + ViT)...")
+    print("Evaluating Multimodal Fusion model (BERT + ViT)...")
     with torch.no_grad():
         for batch in test_loader:
             input_ids = batch['input_ids'].to(device)
@@ -48,14 +75,15 @@ def evaluate():
             all_preds.extend(preds.cpu().numpy())
             all_labels.extend(labels.cpu().numpy())
 
-    # 3. Sonuçları Yazdır
+    # 3. Print Results
+    target_names = LABEL_NAMES.get(args.label_column, [str(i) for i in range(args.num_labels)])
     print("\n" + "="*35)
     print(" FINAL RESULTS: MULTIMODAL FUSION ")
     print("="*35)
-    print(classification_report(all_labels, all_preds, target_names=['Gerçek', 'Sahte']))
+    print(classification_report(all_labels, all_preds, target_names=target_names))
     
-    print("\nHata Matrisi (Confusion Matrix):")
+    print("\nConfusion Matrix:")
     print(confusion_matrix(all_labels, all_preds))
 
 if __name__ == "__main__":
-    evaluate()
+    evaluate()
