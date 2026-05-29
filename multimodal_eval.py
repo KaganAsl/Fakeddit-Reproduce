@@ -1,11 +1,10 @@
 import argparse
 
 import torch
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, random_split
 from transformers import BertTokenizer, ViTImageProcessor
 from sklearn.metrics import classification_report, confusion_matrix
 
-# Kendi modüllerimiz
 from src.dataset import FakedditMultimodalDataset
 from src.models import MultimodalFusionModel
 
@@ -42,16 +41,23 @@ def evaluate():
     tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
     image_processor = ViTImageProcessor.from_pretrained('google/vit-base-patch16-224-in21k')
     
-    # Load test data
-    dataset = FakedditMultimodalDataset(
+    # Load full dataset, then take only the 10% eval split (same seed as training)
+    full_dataset = FakedditMultimodalDataset(
         csv_file=args.csv,
         img_dir=args.img_dir,
         tokenizer=tokenizer,
         feature_extractor=image_processor,
         label_column=args.label_column,
     )
-    
-    test_loader = DataLoader(dataset, batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers)
+
+    total = len(full_dataset)
+    train_size = int(0.9 * total)
+    eval_size = total - train_size
+    generator = torch.Generator().manual_seed(42)
+    _, eval_dataset = random_split(full_dataset, [train_size, eval_size], generator=generator)
+
+    print(f"Evaluating on {len(eval_dataset)} samples (10% held-out split)")
+    test_loader = DataLoader(eval_dataset, batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers)
 
     # 2. Load Model
     model = MultimodalFusionModel(num_classes=args.num_labels).to(device)

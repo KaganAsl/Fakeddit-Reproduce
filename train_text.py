@@ -1,89 +1,138 @@
+import argparse
+
+import numpy as np
+import pandas as pd
 import torch
 import torch.nn as nn
+from sklearn.utils.class_weight import compute_class_weight
 from torch.optim import AdamW
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, random_split
 from transformers import BertTokenizer
-import os
 
-# Kendi modüllerimiz
 from src.dataset import FakedditMultimodalDataset
 from src.models import TextOnlyFakeNewsModel
 
-def main():
-    # 1. Cihaz Kurulumu
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    print(f"Hızlı Eğitim Cihazı: {device}")
 
-    # 2. Hiperparametreler
-    # Metin modunda bellek kullanımı çok düşüktür. 
-    # Eğer GPU belleğin (VRAM) yeterliyse 64 hatta 128 yapabilirsin.
-    BATCH_SIZE = 64 
-    EPOCHS = 3
-    LEARNING_RATE = 2e-5
-    
-    # 3. Tokenizer Yükleme
-    print("BERT Tokenizer yükleniyor...")
+def parse_args():
+    p = argparse.ArgumentParser(description="Text-Only training (2/3/6-way)")
+    p.add_argument('--csv', default='data/multimodel_50k.tsv')
+    p.add_argument('--img-dir', default='data/images_50k/')
+    p.add_argument('--label-column', default='2_way_label',
+                   choices=['2_way_label', '3_way_label', '6_way_label'])
+    p.add_argument('--num-labels', type=int, default=2)
+    p.add_argument('--epochs', type=int, default=3)
+    p.add_argument('--batch-size', type=int, default=64)
+    p.add_argument('--lr', type=float, default=2e-5)
+    p.add_argument('--num-workers', type=int, default=8)
+    p.add_argument('--output-prefix', default='text_only_2way')
+    return p.parse_args()
+
+
+def main():
+    args = parse_args()
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    print(f"Training device: {device}")
+    print(f"Task: {args.label_column} | num_labels={args.num_labels} | prefix={args.output_prefix}")
+
+    print("Loading BERT Tokenizer...")
     tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
 
-    # 4. Veri Seti Hazırlığı
-    # OPTİMİZASYON: feature_extractor=None yaparak görsel işlemlerini tamamen bypass ediyoruz.
-    # Dosya adını senin temizlediğin dosya ismiyle (örn: data/multimodal_fixed.tsv) güncellemelisin.
-    dataset = FakedditMultimodalDataset(
-        csv_file='data/multimodel.tsv', 
-        img_dir='D:/463_project/data/images_sample/',
+    full_dataset = FakedditMultimodalDataset(
+        csv_file=args.csv,
+        img_dir=args.img_dir,
         tokenizer=tokenizer,
-        feature_extractor=None 
+        feature_extractor=None,
+        label_column=args.label_column,
     )
-    
-    # 5. Veri Yükleyici (DataLoader) Ayarları
-    # num_workers: İşlemci çekirdek sayına göre 4, 8 veya 12 yapabilirsin.
+
+    # 90/10 train/eval split
+    total = len(full_dataset)
+    train_size = int(0.9 * total)
+    eval_size = total - train_size
+    generator = torch.Generator().manual_seed(42)
+    train_dataset, eval_dataset = random_split(full_dataset, [train_size, eval_size], generator=generator)
+
     train_loader = DataLoader(
-        dataset, 
-        batch_size=BATCH_SIZE, 
+        train_dataset,
+        batch_size=args.batch_size,
         shuffle=True,
-        num_workers=8, 
-        pin_memory=True if torch.cuda.is_available() else False
+        num_workers=args.num_workers,
+        pin_memory=True if torch.cuda.is_available() else False,
     )
 
-    # 6. Model ve Optimizer
-    model = TextOnlyFakeNewsModel().to(device)
-    criterion = nn.CrossEntropyLoss()
-    optimizer = AdamW(model.parameters(), lr=LEARNING_RATE)
+    eval_loader = DataLoader(
+        eval_dataset,
+        batch_size=args.batch_size,
+        shuffle=False,
+        num_workers=args.num_workers,
+        pin_memory=True if torch.cuda.is_available() else False,
+    )
 
-    print(f"\n🚀 HIZLI METİN EĞİTİMİ (BASELINE 1) BAŞLIYOR")
-    print(f"Toplam Örnek: {len(dataset)}")
-    print(f"Batch Size: {BATCH_SIZE}")
-    print(f"Görsel İşlemleri: ATLANARAK GEÇİLİYOR\n")
-    
-    for epoch in range(EPOCHS):
+    labels_all = pd.read_csv(args.csv, sep='\t')[args.label_column].to_numpy()
+    classes = np.arange(args.num_labels)
+    class_weights = compute_class_weight('balanced', classes=classes, y=labels_all)
+    weight_tensor = torch.tensor(class_weights, dtype=torch.float).to(device)
+    print(f"Class weights: {class_weights.round(3).tolist()}")
+
+    model = TextOnlyFakeNewsModel(num_classes=args.num_labels).to(device)
+    criterion = nn.CrossEntropyLoss(weight=weight_tensor)
+    optimizer = AdamW(model.parameters(), lr=args.lr)
+
+    print(f"\nTEXT-ONLY (BASELINE 1) TRAINING")
+    print(f"Training starts: {len(train_dataset)} train / {len(eval_dataset)} eval samples")
+    print(f"Batch Size: {args.batch_size}")
+    print(f"Image processing: SKIPPED\n")
+
+    for epoch in range(args.epochs):
+        # --- Training ---
         model.train()
         epoch_loss = 0
-        
+
         for batch_idx, batch in enumerate(train_loader):
             input_ids = batch['input_ids'].to(device)
             mask = batch['attention_mask'].to(device)
             labels = batch['label'].to(device)
 
             optimizer.zero_grad()
-            
-            # Forward pass
+
             outputs = model(input_ids, mask)
             loss = criterion(outputs, labels)
-            
-            # Backward pass
+
             loss.backward()
             optimizer.step()
 
             epoch_loss += loss.item()
 
             if batch_idx % 100 == 0:
-                print(f"Epoch: {epoch+1}/{EPOCHS} | Progress: %{100 * batch_idx / len(train_loader):.1f} | Loss: {loss.item():.4f}")
+                print(f"Epoch: {epoch+1}/{args.epochs} | Progress: {100 * batch_idx / len(train_loader):.1f}% | Loss: {loss.item():.4f}")
 
-        avg_loss = epoch_loss / len(train_loader)
-        print(f"\n--- Epoch {epoch+1} Tamamlandı! Ortalama Kayıp: {avg_loss:.4f} ---\n")
-        
-        # Her epoch sonunda ağırlıkları kaydet
-        torch.save(model.state_dict(), f"text_only_model_epoch_{epoch+1}.pt")
+        avg_train_loss = epoch_loss / len(train_loader)
+
+        # --- Evaluation ---
+        model.eval()
+        eval_loss = 0
+        correct = 0
+        total_eval = 0
+
+        with torch.no_grad():
+            for batch in eval_loader:
+                input_ids = batch['input_ids'].to(device)
+                mask = batch['attention_mask'].to(device)
+                labels = batch['label'].to(device)
+
+                outputs = model(input_ids, mask)
+                loss = criterion(outputs, labels)
+
+                eval_loss += loss.item()
+                _, preds = torch.max(outputs, dim=1)
+                correct += (preds == labels).sum().item()
+                total_eval += labels.size(0)
+
+        avg_eval_loss = eval_loss / len(eval_loader)
+        eval_acc = correct / total_eval
+
+        print(f"\n--- Epoch {epoch+1} Done! Train Loss: {avg_train_loss:.4f} | Eval Loss: {avg_eval_loss:.4f} | Eval Acc: {eval_acc:.4f} ---\n")
+        torch.save(model.state_dict(), f"{args.output_prefix}_epoch_{epoch+1}.pt")
 
 if __name__ == "__main__":
     main()
