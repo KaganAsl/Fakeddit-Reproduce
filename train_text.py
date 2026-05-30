@@ -21,9 +21,9 @@ def parse_args():
                    choices=['2_way_label', '3_way_label', '6_way_label'])
     p.add_argument('--num-labels', type=int, default=2)
     p.add_argument('--epochs', type=int, default=3)
-    p.add_argument('--batch-size', type=int, default=64)
+    p.add_argument('--batch-size', type=int, default=8)
     p.add_argument('--lr', type=float, default=2e-5)
-    p.add_argument('--num-workers', type=int, default=8)
+    p.add_argument('--num-workers', type=int, default=4)
     p.add_argument('--output-prefix', default='text_only_2way')
     return p.parse_args()
 
@@ -104,7 +104,7 @@ def main():
             epoch_loss += loss.item()
 
             if batch_idx % 100 == 0:
-                print(f"Epoch: {epoch+1}/{args.epochs} | Progress: {100 * batch_idx / len(train_loader):.1f}% | Loss: {loss.item():.4f}")
+                print(f"Epoch: {epoch+1}/{args.epochs} | Batch: {batch_idx}/{len(train_loader)} | Loss: {loss.item():.4f}")
 
         avg_train_loss = epoch_loss / len(train_loader)
 

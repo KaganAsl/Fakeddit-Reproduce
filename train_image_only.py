@@ -21,7 +21,7 @@ def parse_args():
                    choices=['2_way_label', '3_way_label', '6_way_label'])
     p.add_argument('--num-labels', type=int, default=2)
     p.add_argument('--epochs', type=int, default=3)
-    p.add_argument('--batch-size', type=int, default=16)
+    p.add_argument('--batch-size', type=int, default=8)
     p.add_argument('--lr', type=float, default=2e-5)
     p.add_argument('--num-workers', type=int, default=4)
     p.add_argument('--output-prefix', default='image_only_2way')
