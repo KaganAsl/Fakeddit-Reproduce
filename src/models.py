@@ -28,16 +28,23 @@ class ImageOnlyFakeNewsModel(nn.Module):
         return self.classifier(outputs.pooler_output)
 
 # 3. FINAL MODEL: Multimodal Fusion (BERT + ViT)
+FUSION_METHODS = ('concat', 'add', 'max', 'average', 'multiply')
+
 class MultimodalFusionModel(nn.Module):
-    def __init__(self, num_classes=2):
+    def __init__(self, num_classes=2, fusion='concat'):
         super(MultimodalFusionModel, self).__init__()
+        assert fusion in FUSION_METHODS, f"fusion must be one of {FUSION_METHODS}, got '{fusion}'"
+        self.fusion = fusion
+
         self.bert = BertModel.from_pretrained('bert-base-uncased')
         self.vit = ViTModel.from_pretrained('google/vit-base-patch16-224-in21k')
-        
-        # BERT (768) + ViT (768) birleşimi = 1536
-        combined_features_dim = self.bert.config.hidden_size + self.vit.config.hidden_size
-        
-        # Hata buradaydı: İsim 'classifier' olarak güncellendi
+
+        # concat -> 768+768=1536,  element-wise ops -> 768
+        if fusion == 'concat':
+            combined_features_dim = self.bert.config.hidden_size + self.vit.config.hidden_size
+        else:
+            combined_features_dim = self.bert.config.hidden_size  # 768
+
         self.classifier = nn.Sequential(
             nn.Linear(combined_features_dim, 512),
             nn.ReLU(),
@@ -45,25 +52,34 @@ class MultimodalFusionModel(nn.Module):
             nn.Linear(512, num_classes)
         )
 
+    def _fuse(self, text_features, image_features):
+        if self.fusion == 'concat':
+            return torch.cat((text_features, image_features), dim=1)
+        elif self.fusion == 'add':
+            return text_features + image_features
+        elif self.fusion == 'max':
+            return torch.max(text_features, image_features)
+        elif self.fusion == 'average':
+            return (text_features + image_features) / 2.0
+        elif self.fusion == 'multiply':
+            return text_features * image_features
+
     def forward(self, input_ids, attention_mask, pixel_values):
-        # Metin özelliklerini çıkar
         text_outputs = self.bert(input_ids=input_ids, attention_mask=attention_mask)
-        text_features = text_outputs.pooler_output 
-        
-        # Görsel özelliklerini çıkar
+        text_features = text_outputs.pooler_output
+
         image_outputs = self.vit(pixel_values=pixel_values)
-        image_features = image_outputs.pooler_output 
-        
-        # İki vektörü yan yana ekle
-        combined_features = torch.cat((text_features, image_features), dim=1)
-        
-        # Birleştirilmiş vektörü sınıflandırıcıya gönder
+        image_features = image_outputs.pooler_output
+
+        combined_features = self._fuse(text_features, image_features)
         return self.classifier(combined_features)
 
 # 4. Cross Attention
 class MultimodalModelWithCrossAttention(nn.Module):
-    def __init__(self, num_labels=2, joint_dim=768, num_heads=8, dropout=0.1):
+    def __init__(self, num_labels=2, joint_dim=768, num_heads=8, dropout=0.1, fusion='concat'):
         super(MultimodalModelWithCrossAttention, self).__init__()
+        assert fusion in FUSION_METHODS, f"fusion must be one of {FUSION_METHODS}, got '{fusion}'"
+        self.fusion = fusion
 
         self.bert = BertModel.from_pretrained('bert-base-uncased')
         self.vit = ViTModel.from_pretrained('google/vit-base-patch16-224-in21k')
@@ -76,12 +92,25 @@ class MultimodalModelWithCrossAttention(nn.Module):
             dropout=dropout,
         )
 
+        classifier_in = joint_dim * 2 if fusion == 'concat' else joint_dim
         self.classifier = nn.Sequential(
-            nn.Linear(joint_dim * 2, 512),
+            nn.Linear(classifier_in, 512),
             nn.ReLU(),
             nn.Dropout(dropout),
             nn.Linear(512, num_labels),
         )
+
+    def _fuse(self, feat_a, feat_b):
+        if self.fusion == 'concat':
+            return torch.cat((feat_a, feat_b), dim=1)
+        elif self.fusion == 'add':
+            return feat_a + feat_b
+        elif self.fusion == 'max':
+            return torch.max(feat_a, feat_b)
+        elif self.fusion == 'average':
+            return (feat_a + feat_b) / 2.0
+        elif self.fusion == 'multiply':
+            return feat_a * feat_b
 
     def forward(self, input_ids, attention_mask, pixel_values):
         text_outputs = self.bert(input_ids=input_ids, attention_mask=attention_mask)
@@ -92,6 +121,6 @@ class MultimodalModelWithCrossAttention(nn.Module):
 
         fused_img, fused_txt = self.cross_attention(image_features, text_features)
 
-        combined = torch.cat((fused_img, fused_txt), dim=1)
+        combined = self._fuse(fused_img, fused_txt)
         logits = self.classifier(combined)
         return logits

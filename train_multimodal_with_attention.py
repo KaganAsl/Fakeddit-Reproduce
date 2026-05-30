@@ -10,7 +10,7 @@ from torch.utils.data import DataLoader, random_split
 from transformers import BertTokenizer, ViTImageProcessor
 
 from src.dataset import FakedditMultimodalDataset
-from src.models import MultimodalModelWithCrossAttention
+from src.models import MultimodalModelWithCrossAttention, FUSION_METHODS
 
 
 def parse_args():
@@ -25,6 +25,8 @@ def parse_args():
     p.add_argument('--lr', type=float, default=2e-5)
     p.add_argument('--num-workers', type=int, default=4)
     p.add_argument('--output-prefix', default='attn_2way')
+    p.add_argument('--fusion', default='concat', choices=FUSION_METHODS,
+                   help='Embedding fusion method: concat|add|max|average|multiply')
     return p.parse_args()
 
 
@@ -32,7 +34,7 @@ def main():
     args = parse_args()
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"Training device: {device}")
-    print(f"Task: {args.label_column} | num_labels={args.num_labels} | prefix={args.output_prefix}")
+    print(f"Task: {args.label_column} | num_labels={args.num_labels} | fusion={args.fusion} | prefix={args.output_prefix}")
 
     JOINT_DIM, NUM_HEADS, DROPOUT = 768, 8, 0.1
 
@@ -74,6 +76,7 @@ def main():
         joint_dim=JOINT_DIM,
         num_heads=NUM_HEADS,
         dropout=DROPOUT,
+        fusion=args.fusion,
     ).to(device)
 
     criterion = nn.CrossEntropyLoss(weight=weight_tensor)
