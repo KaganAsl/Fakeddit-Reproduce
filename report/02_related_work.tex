@@ -1,0 +1,21 @@
+\section{Related Work}
+
+\subsection{Fake News Datasets}
+
+Early efforts in fake news detection relied primarily on text-only datasets. LIAR \cite{wang-2017} is one of the most widely used benchmarks, consisting of around 12,000 statements labeled across six categories sourced from PolitiFact. Similarly, Some-Like-It-Hoax \cite{tacchini-2017} focuses on binary classification of scientific and conspiracy-related content from Facebook. While these datasets laid important groundwork, their limited size and unimodal nature restrict their applicability to modern multimodal detection settings.
+
+Larger-scale text datasets such as CREDBANK \cite{mitra-2015} and FakeNewsCorpus address the size limitation but still lack image data. NELA-GT-2018 \cite{norregaard-2019} provides more fine-grained source-level reliability labels across hundreds of news outlets, and FAKENEWSNET \cite{shu-2018} incorporates social context alongside news content. However, none of these datasets provide paired image and text data necessary for multimodal learning.
+
+\subsection{Multimodal Fake News Detection}
+
+Recognizing that fake news increasingly combines textual and visual content, researchers have begun exploring multimodal datasets. The image-verification-corpus \cite{boididou-2017} contains both text and image samples from Twitter for misleading content detection. The PS-Battles dataset \cite{heller-2018} provides manipulated images from Reddit but lacks text pairing at scale. Fauxtography \cite{zlatkova-2019} targets image-caption verification using data from Snopes and Reuters, making it relevant to implicit fact-checking tasks.
+
+Fakeddit \cite{fakeddit} addresses the shortcomings of prior datasets by providing over one million multimodal samples from Reddit with 2-way, 3-way, and 6-way classification labels. It serves as the primary dataset in this work.
+
+\subsection{Text and Image Representations}
+
+The Fakeddit baseline models employ a variety of text and image encoders. For text, BERT and InferSent are explored, while for image encoding, ResNet50, VGG16 and EfficientNet are employed as feature extractors. In our reproduction, we narrow this down to BERT \cite{bert} for text encoding and Vision Transformer (ViT) \cite{vit} for image encoding, focusing on transformer-based representations for both modalities.
+
+\subsection{Multimodal Fusion}
+
+The original Fakeddit paper explores several feature-level fusion strategies for combining text and image representations, including addition, concatenation, element-wise maximum, and averaging. The maximum combination method was found to yield the best performance. In this work, we reproduce these baselines and additionally propose a corss-attention mechanism as an alternative fusion strategy, enabling the model to attend to relevant information across modalities dynamically rather than relying on fixed pooling operations.

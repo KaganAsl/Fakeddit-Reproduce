@@ -1,0 +1,27 @@
+\section{Error Analysis}
+
+We conduct an error analysis based on the confusion matrices of all models on 6-way classification, focusing on the best-performing multimodal fusion model (addition fusion) and comparing it against the unimodal baselines and the cross-attention model.
+
+\subsection{False Connection is the Hardest Class}
+
+Across all models, \textit{False Connection} is consistently the most difficult class to classify correctly. The best multimodal model (addition fusion) achieves only 0.515 F1 for this class, while the image-only model scores as low as 0.186. Examining the confusion matrices, \textit{False Connection} samples are most frequently misclassified as \textit{Real} or \textit{Misleading Content}. This is expected, as false connection posts contain real images paired with unrelated or misleading captions — a subtle distinction that requires understanding the relationship between the two modalities rather than the content of either alone.
+
+\subsection{Manipulated Content is the Easiest Class}
+
+\textit{Manipulated Content} achieves the highest F1 scores across all models, reaching 0.944 with the multiply fusion method and remaining above 0.880 even for the image-only baseline. This is consistent with the original Fakeddit findings \cite{nakamura2020fakeddit}, as manipulated content originates from the photoshopbattles subreddit and contains visually distinctive doctored images that are easily separable from other categories.
+
+\subsection{Concatenation Hurts Real Class Recall}
+
+While the addition fusion model correctly classifies 1,733 out of 1,963 \textit{Real} samples, the concatenation model only correctly classifies 1,370. This large gap in recall (0.883 vs. 0.698) suggests that the higher-dimensional concatenated representation may overfit to certain fake news patterns, causing the model to over-predict fake classes at the expense of true content.
+
+\subsection{Cross-Attention Struggles with False Connection}
+
+The cross-attention model shows a notable weakness on the \textit{False Connection} class, achieving only 0.372 F1 — lower than all multimodal fusion variants. Inspecting the confusion matrix, 104 out of 105 \textit{False Connection} samples are spread across other classes, with a large proportion misclassified as \textit{Real}. This is somewhat surprising given that cross-attention is designed to model the relationship between image and text, which should in principle help with false connection detection. One possible explanation is that with only 3 epochs of training and a small support of 105 samples, the cross-attention module does not have sufficient supervision to learn the subtle image-text misalignment characteristic of this class.
+
+\subsection{Satire Improves with Multimodal Models}
+
+The text-only model achieves 0.565 F1 on \textit{Satire}, while the best multimodal fusion model reaches 0.699. The cross-attention model further improves this to 0.720. This suggests that visual cues complement textual satirical signals, helping the model better distinguish satire from real or misleading content. The improvement in satire classification with cross-attention may indicate that the module learns to align headline tone with image context for this class.
+
+\subsection{Image-Only Model Biased Towards Satire}
+
+The image-only model shows unusually high recall for \textit{Satire} (0.670) compared to its overall performance, while achieving low precision (0.414). This indicates the model frequently predicts \textit{Satire} for samples that are not satire, likely because satire-related subreddits (e.g. theonion, fakealbumcovers) may contain visually distinctive images that the ViT model latches onto, leading to over-prediction of this class.

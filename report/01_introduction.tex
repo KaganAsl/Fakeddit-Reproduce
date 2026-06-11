@@ -1,0 +1,9 @@
+\section{Introduction}
+
+Misinformation and fake news have become a growing threat in today's digital landscape, spreading rapidly across social media platforms and influencing public opinion. Unlike traditional text-based misinformation, modern fake news often combines both textual and visual content, making unimodal detection approaches insufficient for capturing the full context of deceptive information.
+
+Fakeddit, introduced by Nakamura \cite{fakeddit}, is a large-scale multimodal fake news detection dataset collected from Reddit. It contains over one million samples with both text and image modalities, annotated with fine-grained labels for 2-way and 6-way classification tasks. The original paper proposed multimodal baseline models that combine text and image features, demonstrating the importance of leveraging both modalities for fake news detection.
+
+In this work, we reproduce the baseline models proposed in the Fakeddit paper, including text-only, image-only, and multimodal variants using a subset of data which contains 50.000 samples.
+
+Building upon this reproduction, we propose an extension to the multimodal model by incorporating a cross-attention mechanism \cite{attention} between the text and image representations. Unlike simple feature combination used in the original baseline, cross-attention allows the model to dynamically align and weight relevant information across modalities, enabling richer and more expressive multimodal fusion.

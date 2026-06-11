@@ -1,0 +1,9 @@
+\section{Conclusion}
+
+In this work, we reproduced the multimodal fake news detection baseline from the Fakeddit paper and proposed an extension using a bidirectional cross-attention mechanism for text-image fusion. We evaluated our models on a 50,000 sample subset of the Fakeddit dataset across 3-way and 6-way classification tasks using BERT and ViT as text and image encoders respectively.
+
+Our experiments confirm that multimodal models consistently outperform unimodal baselines, with text features providing stronger discriminative signal than image features alone. Among the five fusion strategies evaluated, addition fusion achieves the best overall performance on 6-way classification, while concatenation performs the worst despite its larger feature dimensionality. The cross-attention model demonstrates competitive performance, outperforming the multimodal fusion baseline in macro F1 on 3-way classification, suggesting that dynamic cross-modal attention produces more balanced predictions across classes.
+
+However, a direct and fair comparison between cross-attention and multimodal fusion remains incomplete, as the cross-attention model was only evaluated with concatenation fusion — the weakest fusion method. This leaves open the question of whether cross-attention combined with better fusion strategies could yield more substantial improvements.
+
+Overall, our results support the value of transformer-based multimodal learning for fake news detection and highlight the importance of fusion strategy selection. Future work should explore cross-attention with varied fusion methods, training on the full dataset, and richer cross-modal interaction beyond \texttt{[CLS]}-level representations.

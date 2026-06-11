@@ -1,0 +1,17 @@
+\section{Experimental Setup}
+
+\subsection{Dataset Split}
+
+We use a subset of 50,000 samples from the Fakeddit dataset. The dataset is split into 45,000 training samples and 5,000 validation samples using a fixed random seed for reproducibility. We evaluate all models on 2-way, 3-way, and 6-way classification tasks. To address class imbalance, we apply class-weighted cross-entropy loss, where weights are computed using the balanced weighting strategy from the training set labels.
+
+\subsection{Models}
+
+We train and evaluate four model variants: (1) text-only (BERT), (2) image-only (ViT), (3) multimodal fusion (BERT + ViT), and (4) multimodal with cross-attention (BERT + ViT + Cross-Attention). For the multimodal and cross-attention models, we experiment with five fusion strategies: concatenation, addition, element-wise maximum, average, and multiplication.
+
+\subsection{Implementation Details}
+
+All models are implemented in PyTorch. For text encoding, we use \texttt{bert-base-uncased}, and for image encoding, we use \texttt{google/vit-base-patch16-224-in21k}. Both pretrained models are fine-tuned end-to-end during training. All models are optimized using AdamW with a learning rate of $2 \times 10^{-5}$, a batch size of 8, and trained for 3 epochs. Dropout of 0.1 is applied throughout. The cross-attention module uses 8 attention heads and a joint dimension of 768. All experiments are conducted on an NVIDIA GeForce RTX 3060 Laptop GPU.
+
+\subsection{Evaluation Metrics}
+
+We evaluate all models using accuracy and macro-averaged F1 score across all classification tasks (2-way, 3-way, and 6-way).

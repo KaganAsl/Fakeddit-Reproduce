@@ -1,0 +1,35 @@
+\section{Methodology}
+
+\subsection{Dataset}
+
+We use the Fakeddit dataset \cite{fakeddit}, a large-scale multimodal fake news detection dataset collected from Reddit. Although the full dataset contains over one million samples, we use a subset of 50,000 samples in our experiments due to computational constraints. The subset is sampled uniformly across classes to preserve the label distribution of the original dataset.
+
+\subsection{Feature Extraction}
+
+\subsubsection{Text Encoder}
+For text encoding, we use BERT to extract contextual representations of the submission titles. Each title is tokenized and passed through BERT, and the \texttt{[CLS]} token embedding is used as the sentence-level representation, yielding a 768-dimensional feature vector.
+
+\subsubsection{Image Encoder}
+For image encoding, we use the Vision Transformer (ViT) pretrained on ImageNet. Each submission thumbnail is resized and passed through ViT, and the \texttt{[CLS]} token output is taken as the image representation, yielding a 768-dimensional feature vector.
+
+\subsection{Baseline Multimodal Model}
+
+Following the original Fakeddit paper, we implement three baseline models: a text-only model, an image-only model, and a multimodal fusion model. The text-only model passes the BERT \texttt{[CLS]} token embedding through a linear classifier. The image-only model similarly passes the ViT \texttt{[CLS]} token embedding through a linear classifier.
+
+For the multimodal baseline, the text and image feature vectors are fused and passed through a two-layer classifier consisting of a linear layer (hidden size 512) with ReLU activation and dropout, followed by a final linear layer. We experiment with five fusion strategies: concatenation, element-wise addition, element-wise maximum, element-wise average, and element-wise multiplication.
+
+\subsection{Cross-Attention Extension}
+
+As our primary contribution, we extend the multimodal baseline by introducing a cross-attention mechanism for text-image fusion. The cross-attention module allows each modality to attend to the other, enabling the model to dynamically align and weight relevant information across modalities.
+
+Formally, given text representation $\mathbf{t} \in \mathbb{R}^d$ and image representation $\mathbf{v} \in \mathbb{R}^d$, we compute cross-attention in both directions:
+
+\begin{equation}
+    \mathbf{t}' = \text{Attention}(\mathbf{t}, \mathbf{v}, \mathbf{v}), \quad \mathbf{v}' = \text{Attention}(\mathbf{v}, \mathbf{t}, \mathbf{t})
+\end{equation}
+
+where $\text{Attention}(Q, K, V) = \text{softmax}\left(\frac{QK^\top}{\sqrt{d}}\right)V$. The attended representations $\mathbf{t}'$ and $\mathbf{v}'$ are concatenated and passed through a fully connected layer followed by a softmax classifier.
+
+\subsection{Training Details}
+
+All models are trained using the Adam optimizer \cite{kingma-2014} with a learning rate of $2\text{e-}5$. We use cross-entropy loss for all classification tasks. Training is conducted for a maximum of 3 epochs.

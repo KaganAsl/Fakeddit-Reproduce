@@ -1,0 +1,23 @@
+\section{Discussion}
+
+\subsection{Cross-Attention as a Better Fusion Strategy}
+
+The cross-attention model outperforms the multimodal fusion baseline on 3-way classification in terms of macro F1 (0.892 vs. 0.885), demonstrating that dynamically attending across modalities provides more balanced and generalizable representations than static element-wise fusion. This is an encouraging result given that cross-attention introduces a more expressive interaction between text and image features compared to simple pooling operations.
+
+However, on 6-way classification, the cross-attention model does not surpass the best multimodal fusion variant. An important notice here is that the cross-attention model was only evaluated with concatenation fusion, which was the worst-performing fusion method among the multimodal baselines (0.804 accuracy, 0.721 macro F1 on 6-way). It is therefore plausible that the cross-attention model's true potential is underestimated, and that applying alternative fusion strategies such as addition or average to the attended representations could yield further improvements. This remains an important direction for future work.
+
+\subsection{Fusion Method Matters}
+
+The choice of fusion strategy has a significant impact on performance. Among the five methods tested on the multimodal baseline, addition fusion achieves the best 6-way accuracy (0.850), while concatenation performs the worst (0.804). This is a noteworthy finding, as concatenation is the most commonly used fusion strategy in the literature due to its simplicity. Our results suggest that for transformer-based multimodal models where both modalities produce same-dimensional representations, element-wise operations may be preferable as they preserve the feature scale and avoid introducing unnecessary dimensionality.
+
+\subsection{Modality Contributions}
+
+Text features consistently contribute more to classification performance than image features across all tasks, with the text-only model outperforming the image-only model by a considerable margin (0.755 vs. 0.717 on 6-way accuracy). This aligns with the original Fakeddit findings and reflects the nature of the dataset, where submission titles carry strong discriminative signals. Nevertheless, multimodal models consistently outperform both unimodal baselines, confirming that image features provide complementary information that improves detection performance.
+
+\subsection{Limitations}
+
+Our study has several limitations. First, due to computational constraints, we train on only 50,000 samples out of over one million available in Fakeddit, and limit training to 3 epochs. This likely affects the generalizability of our models, particularly for underrepresented classes such as \textit{False Connection} with only 105 validation samples. Second, the cross-attention model is only evaluated with concatenation fusion, which limits a fair comparison against the multimodal baseline. Third, we do not perform hyperparameter tuning beyond the default settings, and a more thorough search may yield better results for all models. Finally, we do not evaluate on the 2-way classification task due to incomplete results, leaving a full comparison with the original paper as future work.
+
+\subsection{Future Work}
+
+Several directions remain open for future investigation. Evaluating the cross-attention model with all five fusion strategies would provide a fairer comparison and potentially reveal stronger performance gains. Training on the full Fakeddit dataset with more epochs would likely improve performance across all models, particularly for minority classes. Additionally, incorporating later-stage attention mechanisms or co-attention across full token sequences — rather than just \texttt{[CLS]} embeddings — could further enrich the cross-modal interaction. Finally, completing the 2-way classification experiments would enable a direct comparison with the results reported in the original Fakeddit paper.

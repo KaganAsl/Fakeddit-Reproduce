@@ -4,3 +4,10 @@ __pycache__/
 *.tsv
 *.csv
 data/
+*.aux
+*.bbl
+*.blg
+*.log
+*.pdf
+*.gz
+*.toc

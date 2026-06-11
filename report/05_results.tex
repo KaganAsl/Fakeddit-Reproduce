@@ -1,0 +1,62 @@
+\section{Results}
+
+\subsection{Overall Performance}
+
+Table~\ref{tab:results_6way} and Table~\ref{tab:results_3way} present the accuracy and macro-averaged F1 scores for all models on 6-way and 3-way classification tasks respectively. For the multimodal fusion model, we report the best-performing fusion method alongside all variants.
+
+% 6-way results
+\begin{table}[h]
+\centering
+\caption{6-way classification results on the validation set.}
+\label{tab:results_6way}
+\begin{tabular}{llcc}
+\hline
+\textbf{Model} & \textbf{Fusion} & \textbf{Accuracy} & \textbf{Macro F1} \\
+\hline
+Text-only (BERT)        & --        & 0.755 & 0.663 \\
+Image-only (ViT)        & --        & 0.717 & 0.600 \\
+\hline
+\multirow{5}{*}{Multimodal Fusion} 
+                        & Concat    & 0.804 & 0.721 \\
+                        & Add       & 0.850 & 0.764 \\
+                        & Max       & 0.845 & 0.762 \\
+                        & Average   & 0.844 & 0.768 \\
+                        & Multiply  & 0.832 & 0.749 \\
+\hline
+Cross-Attention         & Concat    & 0.816 & 0.721 \\
+\hline
+\end{tabular}
+\end{table}
+
+% 3-way results
+\begin{table}[h]
+\centering
+\caption{3-way classification results on the validation set.}
+\label{tab:results_3way}
+\begin{tabular}{llcc}
+\hline
+\textbf{Model} & \textbf{Fusion} & \textbf{Accuracy} & \textbf{Macro F1} \\
+\hline
+Text-only (BERT)        & --        & 0.861 & 0.844 \\
+Image-only (ViT)        & --        & 0.787 & 0.786 \\
+Multimodal Fusion       & Concat    & 0.880 & 0.885 \\
+Cross-Attention         & Concat    & 0.878 & 0.892 \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{Unimodal Baselines}
+
+The text-only model outperforms the image-only model across both classification tasks, achieving 0.755 accuracy and 0.663 macro F1 on 6-way classification compared to 0.717 and 0.600 for the image-only model. This is consistent with the findings of the original Fakeddit paper, suggesting that textual content carries more discriminative signal for fake news detection.
+
+\subsection{Effect of Fusion Method}
+
+Among the five fusion strategies, the addition method achieves the best performance on 6-way classification with 0.850 accuracy and 0.764 macro F1, followed closely by max (0.845) and average (0.844). Notably, concatenation performs the worst among all fusion methods (0.804 accuracy, 0.721 macro F1), despite having the largest input dimensionality. This suggests that preserving the scale of the original feature space through element-wise operations is more beneficial than simple feature concatenation for this task.
+
+\subsection{Cross-Attention vs. Multimodal Fusion}
+
+The cross-attention model achieves comparable performance to the multimodal fusion baseline. On 6-way classification, it reaches 0.816 accuracy and 0.721 macro F1, which is lower than the best fusion method (add, 0.850). However, on 3-way classification, the cross-attention model achieves a higher macro F1 (0.892) than the multimodal fusion baseline (0.885), despite a marginally lower accuracy (0.878 vs. 0.880). This indicates that cross-attention produces more balanced predictions across classes, which is reflected in the higher macro F1.
+
+\subsection{Per-Class Analysis}
+
+Across all models, the \textit{False Connection} class consistently yields the lowest F1 scores, likely due to its small support (105 samples) and the subtle nature of the mismatch between image and text. The \textit{Manipulated Content} class is the easiest to classify across all models, with F1 scores above 0.880 even for the image-only model, which is expected given the visually distinctive nature of photoshopped images. The \textit{Satire} and \textit{Fabricated} classes show notable improvement in multimodal models over unimodal ones, suggesting that combining text and image signals helps disambiguate these categories.
