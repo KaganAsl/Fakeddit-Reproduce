@@ -28,6 +28,7 @@ def parse_args():
     p.add_argument('--fusion', default='concat', choices=FUSION_METHODS,
                    help='Embedding fusion method: concat|add|max|average|multiply')
     p.add_argument('--split-size', type=float, default=0.7)
+    p.add_argument('--loss-csv', default='multimodal_batch_losses.csv', help='Path to save batch losses')
     return p.parse_args()
 
 
@@ -112,6 +113,8 @@ def main():
 
             if batch_idx % 50 == 0:
                 print(f"Epoch: {epoch+1}/{args.epochs} | Batch: {batch_idx}/{len(train_loader)} | Loss: {loss.item():.4f}")
+                with open(args.loss_csv, "a") as f:
+                    f.write(f"{args.output_prefix},{epoch+1},{loss.item():.4f}\n")
 
         avg_train_loss = epoch_loss / len(train_loader)
 
