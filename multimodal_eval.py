@@ -6,7 +6,7 @@ from transformers import BertTokenizer, ViTImageProcessor
 from sklearn.metrics import classification_report, confusion_matrix
 
 from src.dataset import FakedditMultimodalDataset
-from src.models import MultimodalFusionModel
+from src.models import MultimodalFusionModel, FUSION_METHODS
 
 # Class names for each task
 LABEL_NAMES = {
@@ -28,6 +28,7 @@ def parse_args():
                    help='Saved model weights file')
     p.add_argument('--batch-size', type=int, default=16)
     p.add_argument('--num-workers', type=int, default=4)
+    p.add_argument('--fusion', default='concat', choices=FUSION_METHODS, help='Embedding fusion method: concat|add|max|average|multiply')
     return p.parse_args()
 
 
@@ -60,7 +61,7 @@ def evaluate():
     test_loader = DataLoader(eval_dataset, batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers)
 
     # 2. Load Model
-    model = MultimodalFusionModel(num_classes=args.num_labels).to(device)
+    model = MultimodalFusionModel(num_classes=args.num_labels, fusion=args.fusion).to(device)
     model.load_state_dict(torch.load(args.model_path))
     model.eval()
 
@@ -86,10 +87,10 @@ def evaluate():
     print("\n" + "="*35)
     print(" FINAL RESULTS: MULTIMODAL FUSION ")
     print("="*35)
-    print(classification_report(all_labels, all_preds, target_names=target_names))
+    print(classification_report(all_labels, all_preds, target_names=target_names, digits=3))
     
     print("\nConfusion Matrix:")
     print(confusion_matrix(all_labels, all_preds))
 
 if __name__ == "__main__":
-    evaluate()
+    evaluate()

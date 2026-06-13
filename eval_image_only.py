@@ -84,7 +84,7 @@ def evaluate():
     print("\n" + "="*35)
     print(" FINAL RESULTS: IMAGE-ONLY (BASELINE 2) ")
     print("="*35)
-    print(classification_report(all_labels, all_preds, target_names=target_names))
+    print(classification_report(all_labels, all_preds, target_names=target_names, digits=3))
 
     print("\nConfusion Matrix:")
     print(confusion_matrix(all_labels, all_preds))

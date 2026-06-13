@@ -19,7 +19,8 @@ def parse_args():
     p.add_argument('--num-labels', type=int, default=2)
     p.add_argument('--batch-size', type=int, default=16)
     p.add_argument('--num-workers', type=int, default=2)
-    p.add_argument('--output-prefix', default='attn_2way')
+    p.add_argument('--model-path', default='attn_2way_2way_epoch_3.pt',
+                   help='Saved model weights file')
     p.add_argument('--epoch', type=int, default=3, help='Yuklenecek checkpoint epoch numarasi')
     return p.parse_args()
 
@@ -54,12 +55,11 @@ def main():
         num_labels=args.num_labels, joint_dim=768, num_heads=8, dropout=0.1,
     ).to(device)
 
-    model_path = f"{args.output_prefix}_epoch_{args.epoch}.pt"
-    if os.path.exists(model_path):
-        model.load_state_dict(torch.load(model_path, map_location=device))
-        print(f"Model loaded from {model_path}")
+    if os.path.exists(args.model_path):
+        model.load_state_dict(torch.load(args.model_path, map_location=device))
+        print(f"Model loaded from {args.model_path}")
     else:
-        print(f"Warning: {model_path} not found. Ensure you have trained the model first.")
+        print(f"Warning: {args.model_path} not found. Ensure you have trained the model first.")
 
     model.eval()
 
@@ -82,6 +82,10 @@ def main():
     if all_labels:
         if args.num_labels == 2:
             target_names = ['Real', 'Fake']
+        elif args.num_labels == 3:
+            target_names = ['Real', 'Fake-Text', 'Fake-Image']
+        elif args.num_labels == 6:
+            target_names = ['Real', 'Satire', 'Misleading Content', 'False Connection', 'Manipulated', 'Fabricated']
         else:
             target_names = [f'class_{i}' for i in range(args.num_labels)]
 
@@ -89,7 +93,7 @@ def main():
         print(f" RESULTS: CROSS ATTENTION ({args.label_column}) ")
         print("=" * 50)
         print(classification_report(all_labels, all_preds, labels=list(range(args.num_labels)),
-                                    target_names=target_names, digits=4, zero_division=0))
+                                    target_names=target_names, digits=3, zero_division=0))
         print("Confusion Matrix:")
         print(confusion_matrix(all_labels, all_preds, labels=list(range(args.num_labels))))
 
