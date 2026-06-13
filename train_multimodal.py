@@ -27,6 +27,7 @@ def parse_args():
     p.add_argument('--output-prefix', default='multimodal_fusion_2way')
     p.add_argument('--fusion', default='concat', choices=FUSION_METHODS,
                    help='Embedding fusion method: concat|add|max|average|multiply')
+    p.add_argument('--split-size', type=float, default=0.7)
     return p.parse_args()
 
 
@@ -50,9 +51,8 @@ def main():
         label_column=args.label_column,
     )
 
-    # 90/10 train/eval split
     total = len(full_dataset)
-    train_size = int(0.9 * total)
+    train_size = int(args.split_size * total)
     eval_size = total - train_size
     generator = torch.Generator().manual_seed(42)
     train_dataset, eval_dataset = random_split(full_dataset, [train_size, eval_size], generator=generator)

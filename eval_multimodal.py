@@ -29,6 +29,7 @@ def parse_args():
     p.add_argument('--batch-size', type=int, default=16)
     p.add_argument('--num-workers', type=int, default=4)
     p.add_argument('--fusion', default='concat', choices=FUSION_METHODS, help='Embedding fusion method: concat|add|max|average|multiply')
+    p.add_argument('--split-size', type=float, default=0.7)
     return p.parse_args()
 
 
@@ -42,7 +43,6 @@ def evaluate():
     tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
     image_processor = ViTImageProcessor.from_pretrained('google/vit-base-patch16-224-in21k')
     
-    # Load full dataset, then take only the 10% eval split (same seed as training)
     full_dataset = FakedditMultimodalDataset(
         csv_file=args.csv,
         img_dir=args.img_dir,
@@ -52,7 +52,7 @@ def evaluate():
     )
 
     total = len(full_dataset)
-    train_size = int(0.9 * total)
+    train_size = int(args.split_size * total)
     eval_size = total - train_size
     generator = torch.Generator().manual_seed(42)
     _, eval_dataset = random_split(full_dataset, [train_size, eval_size], generator=generator)
