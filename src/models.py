@@ -8,7 +8,12 @@ class TextOnlyFakeNewsModel(nn.Module):
     def __init__(self, num_classes=2):
         super(TextOnlyFakeNewsModel, self).__init__()
         self.bert = BertModel.from_pretrained('bert-base-uncased')
-        self.classifier = nn.Linear(self.bert.config.hidden_size, num_classes)
+        self.classifier = nn.Sequential(
+            nn.Linear(self.bert.config.hidden_size, 512),
+            nn.ReLU(),
+            nn.Dropout(0.1),
+            nn.Linear(512, num_classes)
+        )
 
     def forward(self, input_ids, attention_mask):
         outputs = self.bert(input_ids=input_ids, attention_mask=attention_mask)
@@ -20,7 +25,12 @@ class ImageOnlyFakeNewsModel(nn.Module):
     def __init__(self, num_classes=2):
         super(ImageOnlyFakeNewsModel, self).__init__()
         self.vit = ViTModel.from_pretrained('google/vit-base-patch16-224-in21k')
-        self.classifier = nn.Linear(self.vit.config.hidden_size, num_classes)
+        self.classifier = nn.Sequential(
+            nn.Linear(self.vit.config.hidden_size, 512),
+            nn.ReLU(),
+            nn.Dropout(0.1),
+            nn.Linear(512, num_classes)
+        )
 
     def forward(self, pixel_values):
         outputs = self.vit(pixel_values=pixel_values)
