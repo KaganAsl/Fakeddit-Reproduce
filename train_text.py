@@ -26,7 +26,7 @@ def parse_args():
     p.add_argument('--num-workers', type=int, default=4)
     p.add_argument('--output-prefix', default='text_only_2way')
     p.add_argument('--split-size', type=float, default=0.7)
-    p.add_argument('--loss-csv', default='text_only)batch_losses.csv', help='Path to save batch losses')
+    p.add_argument('--loss-csv', default='text_only_batch_losses.csv', help='Path to save batch losses')
     return p.parse_args()
 
 
