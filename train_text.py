@@ -27,6 +27,8 @@ def parse_args():
     p.add_argument('--output-prefix', default='text_only_2way')
     p.add_argument('--split-size', type=float, default=0.7)
     p.add_argument('--loss-csv', default='text_only_batch_losses.csv', help='Path to save batch losses')
+    p.add_argument('--checkpoint', default=None, help='Path to a .pt model file to resume training from')
+    p.add_argument('--start-epoch', type=int, default=0, help='Epoch to start from (e.g., 3 if you already trained 3 epochs)')
     return p.parse_args()
 
 
@@ -79,12 +81,16 @@ def main():
     criterion = nn.CrossEntropyLoss(weight=weight_tensor)
     optimizer = AdamW(model.parameters(), lr=args.lr)
 
+    if args.checkpoint:
+        print(f"Loading checkpoint from {args.checkpoint}...")
+        model.load_state_dict(torch.load(args.checkpoint, map_location=device, weights_only=True))
+
     print(f"\nTEXT-ONLY (BASELINE 1) TRAINING")
     print(f"Training starts: {len(train_dataset)} train / {len(eval_dataset)} eval samples")
     print(f"Batch Size: {args.batch_size}")
     print(f"Image processing: SKIPPED\n")
 
-    for epoch in range(args.epochs):
+    for epoch in range(args.start_epoch, args.epochs):
         # --- Training ---
         model.train()
         epoch_loss = 0

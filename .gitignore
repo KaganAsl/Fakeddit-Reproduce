@@ -11,3 +11,4 @@ data/
 *.pdf
 *.gz
 *.toc
+/results

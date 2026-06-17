@@ -29,6 +29,8 @@ def parse_args():
                    help='Embedding fusion method: concat|add|max|average|multiply')
     p.add_argument('--split-size', type=float, default=0.7)
     p.add_argument('--loss-csv', default='multimodal_batch_losses.csv', help='Path to save batch losses')
+    p.add_argument('--checkpoint', default=None, help='Path to a .pt model file to resume training from')
+    p.add_argument('--start-epoch', type=int, default=0, help='Epoch to start from (e.g., 3 if you already trained 3 epochs)')
     return p.parse_args()
 
 
@@ -86,9 +88,13 @@ def main():
     criterion = nn.CrossEntropyLoss(weight=weight_tensor)
     scaler = torch.amp.GradScaler('cuda')
 
+    if args.checkpoint:
+        print(f"Loading checkpoint from {args.checkpoint}...")
+        model.load_state_dict(torch.load(args.checkpoint, map_location=device, weights_only=True))
+
     print(f"Training starts: {len(train_dataset)} train / {len(eval_dataset)} eval samples")
 
-    for epoch in range(args.epochs):
+    for epoch in range(args.start_epoch, args.epochs):
         # --- Training ---
         model.train()
         epoch_loss = 0
