@@ -26,9 +26,10 @@ def parse_args():
     p.add_argument('--num-labels', type=int, default=2)
     p.add_argument('--model-path', default='text_only_2way_epoch_3.pt',
                    help='Saved model weights file')
-    p.add_argument('--batch-size', type=int, default=64)
+    p.add_argument('--batch-size', type=int, default=8)
     p.add_argument('--num-workers', type=int, default=4)
     p.add_argument('--split-size', type=float, default=0.7)
+    p.add_argument('--result-file', default=None)
     return p.parse_args()
 
 
@@ -84,10 +85,17 @@ def evaluate():
     print("\n" + "="*35)
     print(" FINAL RESULTS: TEXT-ONLY (BASELINE 1) ")
     print("="*35)
-    print(classification_report(all_labels, all_preds, target_names=target_names, digits=3))
+    if args.result_file is not None:
+        with open(args.result_file, 'w') as f:
+            print(classification_report(all_labels, all_preds, target_names=target_names, digits=3), file=f)
 
-    print("\nConfusion Matrix:")
-    print(confusion_matrix(all_labels, all_preds))
+            print("\nConfusion Matrix:", file=f)
+            print(confusion_matrix(all_labels, all_preds), file=f)
+    else:
+        print(classification_report(all_labels, all_preds, target_names=target_names, digits=3))
+
+        print("\nConfusion Matrix:")
+        print(confusion_matrix(all_labels, all_preds))
 
 if __name__ == "__main__":
     evaluate()
